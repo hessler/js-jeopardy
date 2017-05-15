@@ -1,0 +1,180 @@
+@import url('https://fonts.googleapis.com/css?family=Oswald:300,400,700');
+
+@charset "UTF-8";
+/* CSS Document */
+
+
+/*---------------------------------------------*/
+/*
+/*  GLOBAL ELEMENTS
+/*
+\*---------------------------------------------*/
+html, body {
+    background: #FFF;
+    font-family: 'Oswald', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    margin: 0;
+    padding: 0;
+}
+body {
+    background: #FFF;
+    font-family: 'Oswald', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 1em;
+    font-weight: 400;
+    line-height: 1.5em;
+}
+table,
+table tbody,
+table thead,
+table tfoot,
+table tr,
+table td {
+    background: transparent;
+    border: none;
+    border-spacing: 0;
+    -webkit-border-horizontal-spacing: 0;
+    -webkit-border-vertical-spacing: 0;
+}
+
+
+/*---------------------------------------------*/
+/*
+/*  CONTAINERS
+/*
+\*---------------------------------------------*/
+.wrapper {
+    width: 100%;
+}
+.jeo-board,
+.jeo-question-container-table,
+.jeo-message-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 100%;
+}
+.jeo-message-overlay {
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    font-size: 2em;
+    line-height: 1.5em;
+    text-align: center;
+    vertical-align: middle;
+}
+.jeo-message-overlay td {
+    padding: 2rem;
+}
+.jeo-category-name,
+.jeo-question,
+.jeo-question-container {
+    background: #0e4ec6;
+    background: -moz-linear-gradient(top, #0e4ec6 0%, #0a3291 35%, #001358 100%);
+    background: -webkit-linear-gradient(top, #0e4ec6 0%, #0a3291 35%, #001358 100%);
+    background: linear-gradient(to bottom, #0e4ec6 0%, #0a3291 35%, #001358 100%);
+    border: none !important;
+    border-collapse: collapse;
+    color: white;
+    width: 25%;
+    -moz-box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.5), inset 0 0 4px rgba(0, 0, 0, 0.5);
+    -webkit-box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.5), inset 0 0 4px rgba(0, 0, 0, 0.5);
+    box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.5), inset 0 0 4px rgba(0, 0, 0, 0.5);
+}
+.jeo-category-name,
+.jeo-question,
+.jeo-question-span {
+    font-size: 1.5em;
+    font-weight: 700;
+    text-align: center;
+    vertical-align: middle;
+}
+.jeo-question {
+    font-size: 3.75em;
+}
+.jeo-question-span {
+    display: block;
+    font-size: 3em;
+    font-weight: 300;
+    line-height: 1.5em;
+    width: 100%;
+}
+.jeo-question {
+    cursor: pointer;
+}
+.jeo-question:hover {
+
+}
+.jeo-question-container-table {
+    display: none;
+}
+.jeo-question-container {
+    padding: 0 2rem;
+}
+.jeo-value-span {
+    font-size: 3.5em;
+    font-weight: 700;
+    line-height: 1.5rem;
+    text-align: center;
+    vertical-align: middle;
+}
+.jeo-currency {
+    font-size: 50%;
+    font-weight: 300;
+    padding: 0 0.25rem;
+    vertical-align: top;
+}
+
+
+/*---------------------------------------------*/
+/*
+/*  BUTTONS/ICONS
+/*
+\*---------------------------------------------*/
+.jeo-answer-button,
+.jeo-close-icon {
+    color: rgba(255, 255, 255, 0.35);
+    cursor: pointer;
+    display: none;
+    font-size: 200%;
+    font-weight: bold;
+    line-height: 0.5em;
+    position: absolute;
+    right: 20px;
+    top: 20px;
+}
+.jeo-answer-button:before {
+    content: '\2794';
+}
+.jeo-close-icon:before {
+    content: "\00d7";
+}
+.jeo-answer-button:hover,
+.jeo-close-icon:hover {
+    color: rgba(255, 255, 255, 1);
+}
+
+
+/*---------------------------------------------*/
+/*
+/*  MEDIA QUERIES
+/*
+\*---------------------------------------------*/
+@media screen and (max-width: 768px) {
+
+    .jeo-message-overlay {
+        font-size: 2em;
+        line-height: 1.5em;
+    }
+    .jeo-category-name {
+        font-size: 0.75em;
+        line-height: 1.5em;
+    }
+    .jeo-question,
+    .jeo-question-span {
+        font-size: 1.5em;
+        line-height: 1.5em;
+    }
+
+}

@@ -1,0 +1,150 @@
+<!doctype html>
+<html xmlns="http://www.w3.org/1999/xhtml" itemscope itemtype="http://schema.org/Person">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Jeopardy</title>
+<meta name="description" content="An interactive Jeopardy game for your web browser." />
+<link rel="stylesheet" type="text/css" href="jeopardy.css" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+</head>
+<body>
+<script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
+<script type="text/javascript" src="jeopardy.js"></script>
+<script type="text/javascript">
+var jeopardy;
+$(document).ready(function() {
+    var finalJeopardy = {
+        "category": "Final Jeopardy Category",
+        "question": "This is the Final Jeopardy question.",
+        "answer": "This is the Final Jeopardy answer."
+    };
+    var questions = [
+        {
+            "category": "Category One",
+            "questions": [
+                {
+                    "value": "100",
+                    "question" : "This is the first question for Category One.",
+                    "answer": "C1 A1 answer"
+                },
+                {
+                    "value": "200",
+                    "question": "This is the second question for Category One.",
+                    "answer": "C1 A2 answer"
+                },
+                {
+                    "value": "300",
+                    "question": "This is the third question for Category One.",
+                    "answer": "C1 A3 answer"
+                },
+                {
+                    "value": "400",
+                    "question": "This is the fourth question for Category One.",
+                    "answer": "C1 A4 answer"
+                },
+                {
+                    "value": "500",
+                    "question": "This is the fifth question for Category One.",
+                    "answer": "C1 A5 answer"
+                }
+            ]
+        },
+        {
+            "category": "Category Two",
+            "questions": [
+                {
+                    "value": "100",
+                    "question": "This is the first question for Category Two.",
+                    "answer": "C2 A1 answer"
+                },
+                {
+                    "value": "200",
+                    "question": "This is the second question for Category Two.",
+                    "answer": "C2 A2 answer"
+                },
+                {
+                    "value": "300",
+                    "question": "This is the third question for Category Two.",
+                    "answer": "C2 A3 answer"
+                },
+                {
+                    "value": "400",
+                    "question": "This is the fourth question for Category Two.",
+                    "answer": "C2 A4 answer"
+                },
+                {
+                    "value": "500",
+                    "question": "This is the fifth question for Category Two.",
+                    "answer": "C2 A5 answer"
+                }
+            ]
+        },
+        {
+            "category": "Category Three",
+            "questions": [
+                {
+                    "value": "100",
+                    "question": "This is the first question for Category Three.",
+                    "answer": "C3 A1 answer"
+                },
+                {
+                    "value": "200",
+                    "question": "This is the second question for Category Three.",
+                    "answer": "C3 A2 answer"
+                },
+                {
+                    "value": "300",
+                    "question": "This is the third question for Category Three.",
+                    "answer": "C3 A3 answer"
+                },
+                {
+                    "value": "400",
+                    "question": "This is the fourth question for Category Three.",
+                    "answer": "C3 A4 answer"
+                },
+                {
+                    "value": "500",
+                    "question": "This is the fifth question for Category Three.",
+                    "answer": "C3 A5 answer"
+                }
+            ]
+        },
+        {
+            "category": "Category Four",
+            "questions": [
+                {
+                    "value": "100",
+                    "question": "This is the first question for Category Four.",
+                    "answer": "C4 A1 answer"
+                },
+                {
+                    "value": "200",
+                    "question": "This is the second question for Category Four.",
+                    "answer": "C4 A2 answer"
+                },
+                {
+                    "value": "300",
+                    "question": "This is the third question for Category Four.",
+                    "answer": "C4 A3 answer"
+                },
+                {
+                    "value": "400",
+                    "question": "This is the fourth question for Category Four.",
+                    "answer": "C4 A4 answer"
+                },
+                {
+                    "value": "500",
+                    "question": "This is the fifth question for Category Four.",
+                    "answer": "C4 A5 answer"
+                }
+            ]
+        }
+    ];
+    jeopardy = new Jeopardy({
+        questions: questions,
+        finalJeopardy: finalJeopardy
+    });
+});
+</script>
+</body>
+</html>
