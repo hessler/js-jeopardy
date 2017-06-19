@@ -1,4 +1,4 @@
-/*global $, document, window, setTimeout */
+/*global $, document, window */
 
 function Jeopardy(options) {
 
@@ -7,7 +7,10 @@ function Jeopardy(options) {
     //-----------------------------------------------------
     // Variables
     //-----------------------------------------------------
-    var questions = [],
+    var audio = null,
+        currentState = {uid: 1},
+        lastStateUID = 0,
+        questions = [],
         categories = [],
         finalJeopardy = {},
         currency = '$',
@@ -27,24 +30,29 @@ function Jeopardy(options) {
         fontSizes = {
             'jeo-value-span': 0,
             'jeo-question-span': 0
+        },
+        lineHeights = {
+            'jeo-value-span': 0
         };
 
     //-----------------------------------------------------
     // Option setting
     //-----------------------------------------------------
     for (var attr in options) {
-        switch (attr) {
-            case 'currency':
-                currency = options[attr];
-                break;
-            case 'messages':
-                setMessages(options[attr]);
-                break;
-            case 'finalJeopardy':
-                finalJeopardy = options[attr];
-                break;
-            default:
-                break;
+        if (options.hasOwnProperty(attr)) {
+            switch (attr) {
+                case 'currency':
+                    currency = options[attr];
+                    break;
+                case 'messages':
+                    setMessages(options[attr]);
+                    break;
+                case 'finalJeopardy':
+                    finalJeopardy = options[attr];
+                    break;
+                default:
+                    break;
+            }
         }
     }
     function setMessages(values) {
@@ -119,35 +127,48 @@ function Jeopardy(options) {
         // Grab font sizes for value and question spans, then remove question span class
         fontSizes['jeo-value-span'] = parseInt($(div).css('font-size'), 10);
         fontSizes['jeo-question-span'] = parseInt($(div).css('font-size'), 10);
+        lineHeights['jeo-value-span'] = parseInt($(div).css('line-height'), 10);
         $(div).removeClass('jeo-question-span');
     }
     function createWelcomeOverlay() {
         var fontSize = parseInt($($('.jeo-question')[0]).css('font-size'), 10);
-        $('.jeo-question-container-table').css({
-            height: '100%',
-            width: '100%',
-            cursor: 'pointer',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            top: 0
-        }).show();
-        $('.jeo-value-span').html('').removeClass('jeo-value-span').addClass('jeo-question-span').html('<strong>' + messages.welcome + '</strong>').css({
-            display: 'inline-block',
-            fontSize: (fontSize * 1.5) + 'px',
-            lineHeight: (fontSize * 1.75) + 'px'
-        });
-        $('.jeo-question-container-table').off('click').one('click', function() {
-            $('.jeo-question-span').html('').removeClass('jeo-question-span').addClass('jeo-value-span').css({
-                fontSize: fontSize + 'px',
-                lineHeight: '',
-                display: 'block'
+        $('.jeo-question-container-table')
+            .css({
+                height: '100%',
+                width: '100%',
+                cursor: 'pointer',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                top: 0
+            }).show();
+        $('.jeo-value-span')
+            .html('')
+            .removeClass('jeo-value-span')
+            .addClass('jeo-question-span')
+            .html('<strong>' + messages.welcome + '</strong>')
+            .css({
+                display: 'inline-block',
+                fontSize: (fontSize * 1.5) + 'px',
+                lineHeight: (fontSize * 1.75) + 'px'
             });
-            $('.jeo-value-span > .jeo-currency').css({
-                padding: '0 0.25rem'
+        $('.jeo-question-container-table')
+            .off('click')
+            .one('click', function() {
+                $('.jeo-question-span')
+                    .html('')
+                    .removeClass('jeo-question-span')
+                    .addClass('jeo-value-span')
+                    .css({
+                        fontSize: fontSize + 'px',
+                        lineHeight: '',
+                        display: 'block'
+                    });
+                $('.jeo-value-span > .jeo-currency').css({
+                    padding: '0 0.25rem'
+                });
+                $('#id-jeo-question-container-table').hide();
             });
-            $('#id-jeo-question-container-table').hide();
-        });
 
     }
     function createWrappers() {
@@ -186,6 +207,30 @@ function Jeopardy(options) {
         $('.jeo-question').each(function() {
             $(this).one('click', openQuestion);
         });
+        $(window).on('popstate', function(event) {
+            // This event handles both back and forward button actions, so there's some extra work to do here.
+            // Get category/question numbers from current state, the uid from the history state, and determine
+            // if we should go back or forward in history, based on comparison of last and history uid values.
+            var categoryNumber = (currentState && currentState.hasOwnProperty('categoryNumber')) ? currentState.categoryNumber : -1,
+                questionNumber = (currentState && currentState.hasOwnProperty('questionNumber')) ? currentState.questionNumber : -1,
+                historyStateUID = (history.state && history.state.hasOwnProperty('uid')) ? history.state.uid : 0,
+                goBack = (lastStateUID === 0) || (lastStateUID >= historyStateUID);
+
+            // Update last state uid with uid of history state as set above.
+            lastStateUID = historyStateUID;
+
+            // Reset current state with history state. Then, if we have a category and question
+            // number and are set to go back, reset the question. Otherwise, update the category
+            // and question numbers and trigger the question click event.
+            currentState = history.state;
+            if (categoryNumber >= 0 && questionNumber >= 0 && goBack) {
+                resetQuestion(categoryNumber, questionNumber);
+            } else {
+                categoryNumber = (currentState && currentState.hasOwnProperty('categoryNumber')) ? currentState.categoryNumber : -1;
+                questionNumber = (currentState && currentState.hasOwnProperty('questionNumber')) ? currentState.questionNumber : -1;
+                $($('.jeo-question[data-category-number="' + categoryNumber + '"][data-question-number="' + questionNumber + '"]')[0]).trigger('click');
+            }
+        });
     }
 
     //-----------------------------------------------------
@@ -193,6 +238,48 @@ function Jeopardy(options) {
     //-----------------------------------------------------
     function setOverlayMessage(message) {
         $('#id-jeo-message').html(message);
+    }
+    function resetAudio() {
+        if (audio) {
+            audio.pause();
+            audio = null;
+        }
+    }
+    function resetQuestion(categoryNumber, questionNumber) {
+        // Reset viewed status of category/question and decrement number of questions viewed.
+        questions[categoryNumber][questionNumber].viewed = false;
+        categories[categoryNumber].questions_viewed -= 1;
+        numberOfQuestionsViewed -= 1;
+        resetQuestionState(categoryNumber, questionNumber);
+    }
+    function resetQuestionState(categoryNumber, questionNumber) {
+        var td = $('.jeo-question[data-category-number="' + categoryNumber + '"][data-question-number="' + questionNumber + '"]')[0];
+        $(td)
+            .html('<span class="jeo-currency">' + currency + '</span>' + questions[categoryNumber][questionNumber].value)
+            .css({
+                cursor: 'pointer',
+                fontSize: fontSizes['jeo-value-span'] + 'px'
+            })
+            .one('click', openQuestion);
+        $('.jeo-close-icon').hide();
+        $('.jeo-answer-button').hide();
+        $('.jeo-question-span')
+            .html('')
+            .removeClass('jeo-question-span')
+            .addClass('jeo-value-span')
+            .css({
+                fontSize: fontSizes['jeo-value-span'] + 'px',
+                lineHeight: '',
+                display: 'block'
+            });
+        $('.jeo-value-span > .jeo-currency').css({
+            padding: '0 0.25rem'
+        });
+        $('.jeo-value-span').css({
+            fontSize: fontSizes['jeo-value-span'] + 'px',
+            lineHeight: lineHeights['jeo-value-span'] + 'px'
+        });
+        $('#id-jeo-question-container-table').hide();
     }
     function openQuestion(event) {
         var width = $(event.currentTarget).outerWidth(),
@@ -202,53 +289,116 @@ function Jeopardy(options) {
             fontSize = parseInt($(event.currentTarget).css('font-size'), 10),
             questionNumber = $(event.currentTarget).attr('data-question-number'),
             categoryNumber = $(event.currentTarget).attr('data-category-number'),
-            question = questions[categoryNumber][questionNumber].question,
-            questionValue = questions[categoryNumber][questionNumber].value;
+            questionValue = questions[categoryNumber][questionNumber].value,
+            contestant = questions[categoryNumber][questionNumber].contestant;
+
+        // Make sure any existing question is already closed and styles reset.
+        closeQuestion();
+        resetQuestionState(categoryNumber, questionNumber);
 
         multiplier = Math.max((parseInt(window.innerWidth, 10) / width), (parseInt(window.innerHeight, 10) / height));
         questions[categoryNumber][questionNumber].viewed = true;
         categories[categoryNumber].questions_viewed += 1;
         numberOfQuestionsViewed += 1;
 
-        $('.jeo-question-container').css({
-            lineHeight: '',
-        }).attr('data-question-number', questionNumber).attr('data-category-number', categoryNumber);
-        $('.jeo-value-span').html('<span class="jeo-currency">' + currency + '</span><strong>' + questionValue + '</strong>');
-        $('.jeo-value-span').animate({
-            fontSize: (fontSize * multiplier) + 'px',
-            lineHeight: (fontSize * 2.25) + 'px'
-        }, 500);
-        $('.jeo-question-container-table').css({'width': width + 'px', 'height': height + 'px', 'left': x + 'px', 'top': y + 'px', 'font-size': fontSize + 'px'}).show().animate({
-            bottom: 0,
-            left: 0,
-            right: 0,
-            top: 0,
-            height: window.innerHeight + 'px',
-            width: window.innerWidth + 'px'
-        }, 500, function() {
-            $('.jeo-question-container-table').css({
-                height: '100%',
-                width: '100%',
-                cursor: 'pointer'
-            });
-            setTimeout(function() {
-                if (categories[categoryNumber].questions_viewed === questions[categoryNumber].length) {
-                    $('.jeo-category-name[data-category-number="' + categoryNumber + '"]').css({
-                        color: 'rgba(255, 255, 255, 0.25)'
-                    });
+        // Reset currentState uid for pushing/replacing into history
+        currentState.uid = Date.now();
+
+        // Set current state values and push history states, as needed for back/forward logic.
+        if (lastStateUID === 0 || typeof(history.state.categoryNumber) !== undefined || typeof(history.state.questionNumber) !== undefined) {
+            currentState.questionNumber = questionNumber;
+            currentState.categoryNumber = categoryNumber;
+            history.pushState(currentState, document.title, window.location.href);
+            lastStateUID = currentState.uid;
+        } else {
+            if (history.state.categoryNumber !== categoryNumber && history.state.questionNumber !== questionNumber) {
+                currentState.questionNumber = history.state.questionNumber;
+                currentState.categoryNumber = history.state.categoryNumber;
+                history.pushState(currentState, document.title, window.location.href);
+            } else {
+                // If history and current states match, just update current state with history-based values,
+                // and don't push/replace into history. Otherwise, reset current state category/question with
+                // event-based values and push state into history.
+                if (history.state.uid === currentState.uid && history.state.categoryNumber === currentState.categoryNumber && history.state.questionNumber === currentState.questionNumber) {
+                    currentState.questionNumber = history.state.questionNumber;
+                    currentState.categoryNumber = history.state.categoryNumber;
+                } else {
+                    currentState.questionNumber = questionNumber;
+                    currentState.categoryNumber = categoryNumber;
+                    history.pushState(currentState, document.title, window.location.href);
+                    lastStateUID = currentState.uid;
                 }
-                $('.jeo-value-span').html('').removeClass('jeo-value-span').addClass('jeo-question-span').html('<strong>' + question + '</strong>').css({
-                    display: 'inline-block',
-                    fontSize: (fontSize * 1.5) + 'px',
-                    lineHeight: (fontSize * 1.75) + 'px'
-                });
-                $('.jeo-answer-button').show();
-                $('.jeo-question-container-table').off('click').one('click', showAnswer);
+            }
+        }
+
+        $('.jeo-question-container')
+            .css({
+                lineHeight: '',
+            })
+            .attr('data-question-number', questionNumber)
+            .attr('data-category-number', categoryNumber);
+        $('.jeo-value-span')
+            .html('<span class="jeo-currency">' + currency + '</span><strong>' + questionValue + '</strong><br/><span class="jeo-contestant">(' + contestant + ')</span>')
+            .animate({
+                fontSize: (fontSize * multiplier) + 'px',
+                lineHeight: (fontSize * 2.25) + 'px'
             }, 500);
-        });
-        $(event.currentTarget).off('click').html('&nbsp;').css({
-            cursor: 'default'
-        });
+        $('.jeo-question-container-table')
+            .css({
+                'width': width + 'px',
+                'height': height + 'px',
+                'left': x + 'px',
+                'top': y + 'px',
+                'font-size': fontSize + 'px'
+            })
+            .show()
+            .animate({
+                bottom: 0,
+                left: 0,
+                right: 0,
+                top: 0,
+                height: window.innerHeight + 'px',
+                width: window.innerWidth + 'px'
+            }, 500, function() {
+                $('.jeo-question-container-table')
+                    .css({
+                        height: '100%',
+                        width: '100%',
+                        cursor: 'pointer'
+                    })
+                    .off('click')
+                    .one('click', showQuestion);
+            });
+        $(event.currentTarget)
+            .off('click')
+            .html('&nbsp;')
+            .css({
+                cursor: 'default'
+            });
+    }
+    function showQuestion(event) {
+        var fontSize = parseInt($(event.currentTarget).css('font-size'), 10),
+            questionNumber = $($(event.currentTarget).find('td.jeo-question-container')).attr('data-question-number'),
+            categoryNumber = $($(event.currentTarget).find('td.jeo-question-container')).attr('data-category-number'),
+            question = questions[categoryNumber][questionNumber].question;
+
+        if (categories[categoryNumber].questions_viewed === questions[categoryNumber].length) {
+            $('.jeo-category-name[data-category-number="' + categoryNumber + '"]').css({
+                color: 'rgba(255, 255, 255, 0.25)'
+            });
+        }
+        $('.jeo-value-span')
+            .html('')
+            .removeClass('jeo-value-span')
+            .addClass('jeo-question-span')
+            .html('<strong>' + question + '</strong>')
+            .css({
+                display: 'inline-block',
+                fontSize: (fontSize * 1.5) + 'px',
+                lineHeight: (fontSize * 1.75) + 'px'
+            });
+        $('.jeo-answer-button').show();
+        $('.jeo-question-container-table').off('click').one('click', showAnswer);
     }
     function showAnswer(event) {
         var questionNumber = $(event.currentTarget).find('td[data-question-number]').attr('data-question-number'),
@@ -262,46 +412,65 @@ function Jeopardy(options) {
 
     }
     function closeQuestion(event) {
+        resetAudio();
         if (numberOfQuestionsViewed === numberOfQuestions) {
             // Show Final Jeopardy!
             $('.jeo-close-icon').hide();
             $('.jeo-answer-button').show();
-            $('.jeo-question-span').html(finalJeopardy.category).removeClass('jeo-question-span').addClass('jeo-value-span').css({
-                fontSize: (fontSizes['jeo-value-span'] * (multiplier / 2)) + 'px',
-                lineHeight: (fontSizes['jeo-value-span'] * 3.25) + 'px',
-                display: 'block'
-            });
-            $('#id-jeo-question-container-table').css({
-                cursor: 'pointer'
-            }).on('click', function() {
-                $('.jeo-value-span').removeClass('jeo-value-span').addClass('jeo-question-span').html('<strong>' + finalJeopardy.question + '</strong>').css({
-                    display: 'inline-block',
-                    fontSize: fontSizes['jeo-question-span'] * 2 + 'px',
-                    lineHeight: (fontSizes['jeo-question-span'] * 2.25) + 'px'
+            $('.jeo-question-span')
+                .html(finalJeopardy.category)
+                .removeClass('jeo-question-span')
+                .addClass('jeo-value-span')
+                .css({
+                    fontSize: (fontSizes['jeo-value-span'] * (multiplier / 2)) + 'px',
+                    lineHeight: (fontSizes['jeo-value-span'] * 3.25) + 'px',
+                    display: 'block'
                 });
-                $(this).off('click').one('click', function() {
-                    $('.jeo-question-span').html('<strong>' + finalJeopardy.answer + '</strong>').css({
-                        cursor: 'default'
-                    });
+            $('#id-jeo-question-container-table')
+                .css({
+                    cursor: 'pointer'
+                }).on('click', function() {
+                    $('.jeo-value-span')
+                        .removeClass('jeo-value-span')
+                        .addClass('jeo-question-span')
+                        .html('<strong>' + finalJeopardy.question + '</strong>')
+                        .css({
+                            display: 'inline-block',
+                            fontSize: fontSizes['jeo-question-span'] * 2 + 'px',
+                            lineHeight: (fontSizes['jeo-question-span'] * 2.25) + 'px'
+                        });
+                    audio = new Audio('jeopardy-theme-song.mp3');
+                    audio.play();
                     $(this).off('click').one('click', function() {
-                        $('#id-jeo-question-container-table').css({
+                        resetAudio();
+                        $('.jeo-question-span').html('<strong>' + finalJeopardy.answer + '</strong>').css({
                             cursor: 'default'
                         });
-                        $('.jeo-question-span').html('<strong>' + messages.game_over + '</strong>').css({
-                            cursor: 'default'
+                        $(this).off('click').one('click', function() {
+                            $('#id-jeo-question-container-table').css({
+                                cursor: 'default'
+                            });
+                            $('.jeo-question-span')
+                                .html('<strong>' + messages.game_over + '</strong>')
+                                .css({
+                                    cursor: 'default'
+                                });
+                            $('.jeo-answer-button').hide();
+                            $(this).off('click');
                         });
-                        $('.jeo-answer-button').hide();
-                        $(this).off('click');
                     });
                 });
-            });
         } else {
             $('.jeo-close-icon').hide();
-            $('.jeo-question-span').html('').removeClass('jeo-question-span').addClass('jeo-value-span').css({
-                fontSize: fontSizes['jeo-value-span'] + 'px',
-                lineHeight: '',
-                display: 'block'
-            });
+            $('.jeo-question-span')
+                .html('')
+                .removeClass('jeo-question-span')
+                .addClass('jeo-value-span')
+                .css({
+                    fontSize: fontSizes['jeo-value-span'] + 'px',
+                    lineHeight: '',
+                    display: 'block'
+                });
             $('.jeo-value-span > .jeo-currency').css({
                 padding: '0 0.25rem'
             });
@@ -328,23 +497,31 @@ function Jeopardy(options) {
     //-----------------------------------------------------
     this.init = function() {
 
-        // Redefine to avoid duplicating
-        this.init = function() { return; };
-
         var i,
             j,
-            attr,
             question,
             numQuestionsPerCategory;
 
+        // Redefine to avoid duplicating
+        this.init = function() { return; };
+
+        // Set initial state
+        currentState.uid = Date.now();
+        window.history.replaceState(currentState, document.title, window.location.href);
+
+        // Create main wrappers
         createWrappers();
 
+        // If no questions (Array), show error.
         if (!options.questions || Object.prototype.toString.call(options.questions) !== '[object Array]' || options.questions.length === 0) {
             showOverlayMessage(true, messages.no_questions);
             return;
         }
 
+        // Set category/question arrays with all applicable error and conditional checks.
         for (i = 0; i < options.questions.length; i += 1) {
+
+            // If no category (String), show error. Otherwise, set category attributes.
             if (!options.questions[i].hasOwnProperty('category') || Object.prototype.toString.call(options.questions[i].category) !== '[object String]') {
                 showOverlayMessage(true, messages.invalid_category_type);
                 return;
@@ -353,18 +530,26 @@ function Jeopardy(options) {
                 'category': options.questions[i].category,
                 'questions_viewed': 0
             };
+
+            // If mismatched question lengths, show error.
             if (i !== 0 && options.questions[i].questions.length !== numQuestionsPerCategory) {
                 showOverlayMessage(true, messages.mismatched_question_values);
                 return;
             }
+
+            // If no questions (Array), show error.
             if (Object.prototype.toString.call(options.questions) !== '[object Array]') {
                 showOverlayMessage(true, messages.invalid_questions_type);
                 return;
             }
+
+            // If question not object with appropriate attributes, show error.
             if (Object.prototype.toString.call(options.questions[i]) !== '[object Object]' || !options.questions[i].hasOwnProperty('questions') || Object.prototype.toString.call(options.questions[i].questions) !== '[object Array]') {
                 showOverlayMessage(true, messages.invalid_questions_type);
                 return;
             }
+
+            // Set questions arrays with applicable type and attribute checks, showing error if needed.
             numQuestionsPerCategory = options.questions[i].questions.length;
             questions[i] = [];
             for (j = 0; j < numQuestionsPerCategory; j += 1) {
@@ -378,7 +563,7 @@ function Jeopardy(options) {
             }
         }
 
-        // Final Jeopardy category and question check
+        // Final Jeopardy category and question check.
         if (!finalJeopardy || !finalJeopardy.hasOwnProperty('category') || !finalJeopardy.hasOwnProperty('question') || !finalJeopardy.hasOwnProperty('answer') || Object.prototype.toString.call(finalJeopardy.category) !== '[object String]' || Object.prototype.toString.call(finalJeopardy.question) !== '[object String]' || Object.prototype.toString.call(finalJeopardy.answer) !== '[object String]') {
             showOverlayMessage(true, messages.invalid_final_jeopardy);
             return;
